@@ -1,0 +1,11 @@
+{
+      "java.home": "E:\\jdk21",
+  "java.configuration.runtimes": [
+    {
+      "name": "JavaSE-21",
+      "path": "E:\\jdk21",
+      "default": true
+    }
+  ],
+  "java.compile.nullAnalysis.mode": "automatic"
+}

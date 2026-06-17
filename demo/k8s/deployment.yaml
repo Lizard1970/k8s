@@ -16,8 +16,8 @@ spec:
     spec:
       containers:
         - name: demo-service
-          image: demo-service:1.0.0
-          imagePullPolicy: IfNotPresent
+          image: 192.168.139.30:5000/demo-service:1.0.0
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8080
