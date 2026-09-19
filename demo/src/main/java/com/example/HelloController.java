@@ -21,7 +21,7 @@ public class HelloController {
 
     @GetMapping("/hello")
     public String hello() {
-        return "Hello, Welcome from Kubernetes, pod = " + hostname();
+        return "欢迎来到k8s, pod = " + hostname();
     }
 
     @GetMapping("/health")
