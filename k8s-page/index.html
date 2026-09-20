@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>demo-service · Kubernetes 水墨集</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='6' fill='%23A63B2B'/%3E%3Ctext x='24' y='34' font-size='30' fill='%23F3EFE5' text-anchor='middle' font-family='serif'%3E%E4%BA%91%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://miaoda.feishu.cn" crossorigin>
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+  :root{
+    --paper:#F3EFE5;
+    --paper-2:#EBE5D6;
+    --paper-card:#FAF7EF;
+    --ink:#2F2A22;
+    --ink-soft:#6E6757;
+    --ink-faint:#9C9381;
+    --line:rgba(47,42,34,.14);
+    --line-soft:rgba(47,42,34,.08);
+    --green:#6E7C5C;
+    --green-ink:#3F4A33;
+    --peach:#C08B72;
+    --peach-soft:#E3C7B4;
+    --mist:#75848F;
+    --seal:#A63B2B;
+    --gold:#A08B4F;
+    --serif:'Noto Serif SC','Songti SC','SimSun',serif;
+    --sans:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;
+    --mono:ui-monospace,'Cascadia Code',Consolas,'Courier New',monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--sans);
+    color:var(--ink);
+    background:var(--paper);
+    line-height:1.85;
+    font-weight:300;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  /* 宣纸颗粒 */
+  body::before{
+    content:'';
+    position:fixed;inset:0;z-index:60;pointer-events:none;
+    opacity:.05;mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  }
+  ::selection{background:var(--peach-soft);color:var(--ink)}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 28px}
+  .serif{font-family:var(--serif)}
+
+  /* ===== 导航 ===== */
+  .nav{
+    position:fixed;top:0;left:0;right:0;z-index:50;
+    background:rgba(243,239,229,.9);
+    border-bottom:1px solid var(--line-soft);
+    backdrop-filter:blur(6px);
+    transition:box-shadow .3s;
+  }
+  .nav.scrolled{box-shadow:0 2px 14px rgba(47,42,34,.06)}
+  .nav-in{display:flex;align-items:center;gap:28px;height:64px}
+  .brand{display:flex;align-items:center;gap:12px;flex-shrink:0}
+  .brand .seal{width:38px;height:38px;border-radius:5px;background:var(--seal);display:grid;place-items:center;flex-shrink:0}
+  .brand .seal svg{width:24px;height:24px}
+  .brand-name{font-family:var(--serif);font-weight:700;font-size:1.08rem;letter-spacing:.02em;line-height:1.2}
+  .brand-sub{font-size:.7rem;color:var(--ink-soft);letter-spacing:.28em}
+  .nav-links{display:flex;gap:6px;margin-left:auto;overflow-x:auto;scrollbar-width:none}
+  .nav-links::-webkit-scrollbar{display:none}
+  .nav-links a{
+    font-size:.86rem;color:var(--ink-soft);padding:6px 12px;border-radius:20px;white-space:nowrap;
+    transition:color .2s,background .2s;
+  }
+  .nav-links a:hover{color:var(--green-ink);background:rgba(110,124,92,.1)}
+
+  /* ===== 首屏 ===== */
+  .hero{
+    position:relative;min-height:100svh;display:flex;align-items:center;
+    overflow:hidden;
+    background:url('assets/hero.jpg') center 38%/cover no-repeat;
+  }
+  .hero::before{
+    content:'';position:absolute;inset:0;
+    background:linear-gradient(180deg,rgba(243,239,229,.66) 0%,rgba(243,239,229,.42) 46%,rgba(243,239,229,.82) 100%);
+  }
+  .hero-in{position:relative;z-index:2;padding:120px 0 150px;width:100%}
+  .hero-eyebrow{
+    display:inline-flex;align-items:center;gap:12px;
+    font-size:.78rem;letter-spacing:.34em;color:var(--green-ink);
+    margin-bottom:26px;
+  }
+  .hero-eyebrow::before{content:'';width:38px;height:1px;background:var(--green)}
+  .hero h1{
+    font-family:var(--serif);font-weight:900;
+    font-size:clamp(2.7rem,7.4vw,5.2rem);
+    line-height:1.12;letter-spacing:.01em;
+    animation:rise 1s cubic-bezier(.22,1,.36,1) .1s both;
+  }
+  .hero h1 .dot{color:var(--seal)}
+  .hero-sub{
+    margin-top:22px;font-size:clamp(1rem,1.6vw,1.2rem);color:var(--ink-soft);
+    max-width:520px;animation:rise 1s cubic-bezier(.22,1,.36,1) .28s both;
+  }
+  .hero-stats{
+    display:flex;gap:0;margin-top:44px;animation:rise 1s cubic-bezier(.22,1,.36,1) .46s both;
+  }
+  .hero-stats .stat{display:flex;flex-direction:column;gap:4px;padding:0 34px;border-left:1px solid var(--line)}
+  .hero-stats .stat:first-child{padding-left:0;border-left:none}
+  .hero-stats .num{font-family:var(--serif);font-weight:700;font-size:1.5rem;letter-spacing:.03em}
+  .hero-stats .lbl{font-size:.76rem;color:var(--ink-faint);letter-spacing:.2em}
+  .hero-poem{
+    position:absolute;right:6.5vw;top:50%;transform:translateY(-50%);
+    writing-mode:vertical-rl;font-family:var(--serif);font-weight:600;
+    font-size:clamp(1.05rem,1.9vw,1.45rem);letter-spacing:.42em;color:var(--ink-soft);
+    text-shadow:0 1px 0 rgba(255,255,255,.5);
+    opacity:.92;animation:rise 1.2s cubic-bezier(.22,1,.36,1) .5s both;
+    padding-bottom:8px;border-bottom:1px solid var(--peach);
+  }
+  section[id]{scroll-margin-top:74px}
+  #top{scroll-margin-top:0}
+  .hero-poem small{font-size:.66rem;letter-spacing:.3em;color:var(--ink-faint);margin-bottom:14px}
+  .scroll-cue{
+    position:absolute;left:50%;bottom:34px;transform:translateX(-50%);z-index:2;
+    display:flex;flex-direction:column;align-items:center;gap:10px;
+    color:var(--ink-faint);font-size:.72rem;letter-spacing:.3em;
+  }
+  .scroll-cue i{display:block;width:1px;height:44px;background:var(--ink-faint);overflow:hidden;position:relative}
+  .scroll-cue i::after{content:'';position:absolute;left:0;top:-50%;width:100%;height:50%;background:var(--green);animation:cue 2.2s ease-in-out infinite}
+  @keyframes cue{0%{top:-50%}60%,100%{top:110%}}
+  @keyframes rise{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:translateY(0)}}
+
+  /* ===== 章节通用 ===== */
+  section{padding:104px 0;position:relative}
+  section:nth-of-type(even){background:rgba(235,229,214,.32)}
+  .sec-head{margin-bottom:56px}
+  .sec-kicker{
+    display:flex;align-items:center;gap:14px;
+    font-size:.8rem;letter-spacing:.32em;color:var(--green);margin-bottom:16px;
+  }
+  .sec-kicker::after{content:'';flex:0 0 56px;height:1px;background:var(--green);opacity:.5}
+  .sec-title{font-family:var(--serif);font-weight:700;font-size:clamp(1.7rem,3.4vw,2.5rem);line-height:1.3;letter-spacing:.04em}
+  .sec-title em{font-style:normal;color:var(--peach)}
+  .sec-lead{max-width:680px;margin-top:16px;color:var(--ink-soft);font-size:.97rem}
+
+  /* ===== 卷首 · 总览 ===== */
+  .overview-grid{display:grid;grid-template-columns:1.25fr .9fr;gap:64px;align-items:center}
+  .ov-text p{color:var(--ink-soft);font-size:.98rem;margin-bottom:18px}
+  .ov-text p strong{color:var(--ink);font-weight:500}
+  .ov-tags{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}
+  .ov-tags span{
+    font-size:.8rem;color:var(--green-ink);background:rgba(110,124,92,.09);
+    border:1px solid rgba(110,124,92,.22);padding:4px 14px;border-radius:2px;
+    letter-spacing:.06em;font-weight:400;
+  }
+  .hanging{
+    position:relative;padding:18px 18px 0;
+    background:linear-gradient(180deg,#F6F2E7,#EFE9D9);
+    border:1px solid var(--line);box-shadow:0 14px 34px rgba(47,42,34,.10);
+  }
+  .hanging .roll{overflow:hidden;border:1px solid var(--line-soft);line-height:0}
+  .hanging .roll img{width:100%;height:auto;display:block;transform:scale(1.02)}
+  .hanging::before,.hanging::after{
+    content:'';position:absolute;left:0;right:0;height:9px;
+    background:repeating-linear-gradient(90deg,#C9A98F 0 3px,#B9916F 3px 6px);
+  }
+  .hanging::before{top:0}
+  .hanging::after{bottom:auto;display:none}
+  .hanging-cap{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:14px 4px 16px;line-height:1.6;
+  }
+  .hanging-cap .cap{font-family:var(--serif);font-size:.92rem;color:var(--ink-soft);letter-spacing:.14em}
+  .hanging-cap .miniseal{
+    width:26px;height:26px;border-radius:4px;background:var(--seal);
+    display:grid;place-items:center;flex-shrink:0;opacity:.85;
+  }
+  .hanging-cap .miniseal svg{width:16px;height:16px}
+
+  /* ===== 部署之流 ===== */
+  .flow-wrap{position:relative}
+  .flow{
+    display:grid;grid-template-columns:repeat(5,1fr);
+    gap:18px;position:relative;
+  }
+  .flow::before{
+    content:'';position:absolute;top:33px;left:7%;right:7%;
+    border-top:1px dashed rgba(47,42,34,.28);
+  }
+  .fstep{position:relative;text-align:center;padding:0 6px}
+  .fstep .fnum{
+    position:relative;z-index:1;width:66px;height:66px;margin:0 auto 20px;
+    border-radius:50%;background:var(--paper-card);
+    border:1px solid var(--ink);color:var(--ink);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--serif);font-weight:700;font-size:1.3rem;
+    box-shadow:0 0 0 6px var(--paper);
+    transition:all .25s;
+  }
+  .fstep:hover .fnum{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .fstep h4{font-family:var(--serif);font-weight:700;font-size:1.06rem;letter-spacing:.1em;margin-bottom:8px}
+  .fstep p{font-size:.82rem;color:var(--ink-soft);line-height:1.75;min-height:3.5em}
+  .fstep .cmd{
+    display:inline-block;margin-top:12px;padding:3px 10px;
+    font-family:var(--mono);font-size:.72rem;color:var(--green-ink);
+    background:rgba(110,124,92,.1);border:1px solid rgba(110,124,92,.2);
+    border-radius:3px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+
+  /* ===== 资源清单 ===== */
+  .res-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-bottom:34px}
+  .res-card{
+    background:var(--paper-card);border:1px solid var(--line);
+    padding:30px 32px;position:relative;
+  }
+  .res-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--green)}
+  .res-card.kind-service::before{background:var(--peach)}
+  .res-card h3{font-family:var(--serif);font-weight:700;font-size:1.22rem;display:flex;align-items:center;gap:12px;margin-bottom:20px}
+  .res-card h3 .kind{
+    font-size:.68rem;letter-spacing:.22em;color:var(--paper-card);
+    background:var(--green);padding:2px 10px;border-radius:2px;font-weight:400;
+  }
+  .res-card.kind-service h3 .kind{background:var(--peach)}
+  .kv{display:flex;gap:16px;padding:9px 0;border-bottom:1px dashed var(--line-soft);font-size:.88rem}
+  .kv:last-child{border-bottom:none}
+  .kv .k{flex:0 0 96px;color:var(--ink-faint);letter-spacing:.08em}
+  .kv .v{font-family:var(--mono);font-size:.8rem;color:var(--ink);word-break:break-all}
+  .kv .v.good{color:var(--green-ink)}
+  .chart-card{
+    background:var(--paper-card);border:1px solid var(--line);padding:30px 32px 18px;
+  }
+  .chart-card h3{font-family:var(--serif);font-weight:700;font-size:1.22rem;margin-bottom:6px}
+  .chart-card .hint{font-size:.8rem;color:var(--ink-faint);margin-bottom:10px}
+  #resChart{width:100%;height:280px}
+  .chart-note{margin-top:14px;font-size:.8rem;color:var(--ink-faint);line-height:1.8}
+  .chart-note b{color:var(--ink-soft);font-weight:500}
+
+  /* ===== 服务接口 ===== */
+  .api-card{background:var(--paper-card);border:1px solid var(--line);overflow:hidden}
+  table{width:100%;border-collapse:collapse;table-layout:fixed}
+  colgroup col.c1{width:24%}
+  colgroup col.c2{width:46%}
+  colgroup col.c3{width:30%}
+  th{
+    text-align:left;font-weight:500;font-size:.78rem;letter-spacing:.22em;color:var(--paper-card);
+    background:var(--ink);padding:14px 22px;
+  }
+  td{padding:16px 22px;border-top:1px solid var(--line-soft);font-size:.9rem;vertical-align:top}
+  td code{
+    font-family:var(--mono);font-size:.82rem;color:var(--green-ink);
+    background:rgba(110,124,92,.1);padding:2px 8px;border-radius:3px;
+  }
+  td .desc{color:var(--ink-soft);font-size:.86rem}
+  td .ret{font-family:var(--mono);font-size:.78rem;color:var(--ink-soft)}
+
+  /* ===== 云上指令 ===== */
+  .cmd-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+  .cmd-card{background:var(--paper-card);border:1px solid var(--line)}
+  .cmd-head{
+    display:flex;align-items:center;gap:10px;padding:13px 20px;
+    border-bottom:1px solid var(--line-soft);
+    font-family:var(--serif);font-weight:600;font-size:.98rem;letter-spacing:.1em;
+  }
+  .cmd-head i{width:9px;height:9px;border-radius:50%;background:var(--seal);opacity:.8;display:inline-block}
+  .cmd-body{padding:14px 20px}
+  .cmdline{
+    display:flex;align-items:center;gap:12px;padding:7px 8px;border-radius:3px;
+    font-family:var(--mono);font-size:.8rem;cursor:default;
+    transition:background .15s;position:relative;
+  }
+  .cmdline:hover{background:rgba(47,42,34,.045)}
+  .cmdline .p{color:var(--seal);flex-shrink:0;user-select:none}
+  .cmdline .t{color:var(--ink);word-break:break-all;flex:1}
+  .cmdline .copy{
+    flex-shrink:0;width:24px;height:24px;border:1px solid var(--line);border-radius:4px;
+    background:transparent;cursor:pointer;display:none;place-items:center;color:var(--ink-soft);
+  }
+  .cmdline:hover .copy{display:grid}
+  .cmdline .copy:hover{background:var(--green);border-color:var(--green);color:#fff}
+  .cmdline .copy::before{
+    content:'';width:13px;height:13px;display:block;
+    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6757' stroke-width='2'%3E%3Crect x='9' y='9' width='11' height='11' rx='1.5'/%3E%3Cpath d='M5 15V5.5A1.5 1.5 0 0 1 6.5 4H15'/%3E%3C/svg%3E") center/contain no-repeat;
+  }
+
+  /* ===== 学习历程 ===== */
+  .tl{display:grid;grid-template-columns:96px 34px 1fr;gap:0;max-width:880px}
+  .tl-row{display:contents}
+  .tl-no{
+    font-family:var(--serif);font-weight:700;font-size:1.02rem;color:var(--ink-faint);
+    padding:22px 0;text-align:right;letter-spacing:.12em;align-self:center;
+  }
+  .tl-axis{position:relative;display:flex;justify-content:center;align-self:stretch}
+  .tl-axis::before{content:'';position:absolute;top:0;bottom:0;width:1px;background:var(--line)}
+  .tl-dot{
+    position:relative;z-index:1;align-self:center;width:12px;height:12px;border-radius:50%;
+    background:var(--paper);border:2px solid var(--green);justify-self:center;
+    box-shadow:0 0 0 5px var(--paper);
+  }
+  .tl-dot.s1{border-color:var(--peach)}
+  .tl-dot.s2{border-color:var(--seal)}
+  .tl-body{padding:20px 0 22px 26px;align-self:center}
+  .tl-body h4{font-family:var(--serif);font-weight:700;font-size:1.1rem;letter-spacing:.06em;margin-bottom:6px}
+  .tl-body p{font-size:.87rem;color:var(--ink-soft);line-height:1.8}
+  .tl-body code{
+    font-family:var(--mono);font-size:.76rem;color:var(--green-ink);
+    background:rgba(110,124,92,.1);padding:1px 7px;border-radius:3px;
+  }
+
+  /* ===== 页脚 ===== */
+  footer{padding:74px 0 54px;border-top:1px solid var(--line-soft);position:relative}
+  .foot-in{display:flex;flex-direction:column;align-items:center;gap:22px;text-align:center}
+  .foot-seal{width:54px;height:54px;border-radius:7px;background:var(--seal);display:grid;place-items:center;box-shadow:0 6px 18px rgba(166,59,43,.28)}
+  .foot-seal svg{width:34px;height:34px}
+  .foot-name{font-family:var(--serif);font-weight:700;font-size:1.25rem;letter-spacing:.12em}
+  .foot-poem{font-family:var(--serif);color:var(--ink-soft);font-size:.94rem;letter-spacing:.3em;line-height:2.1}
+  .foot-tech{display:flex;gap:26px;font-size:.76rem;color:var(--ink-faint);letter-spacing:.18em}
+  .foot-tech span::before{content:'·';margin-right:26px;color:var(--peach)}
+  .foot-tech span:first-child::before{content:'';margin:0}
+
+  /* ===== 响应式 ===== */
+  @media (max-width:980px){
+    .overview-grid{grid-template-columns:1fr;gap:48px}
+    .hanging{max-width:460px;margin:0 auto}
+    .flow{grid-template-columns:1fr;gap:34px}
+    .flow::before{left:33px;top:4%;bottom:4%;width:1px;height:auto;border-top:none;border-left:1px dashed rgba(47,42,34,.28)}
+    .fstep{text-align:left;padding-left:96px}
+    .fstep .fnum{margin:0 0 12px}
+    .fstep p{min-height:0}
+    .res-grid,.cmd-grid{grid-template-columns:1fr}
+    .hero-poem{display:none}
+  }
+  @media (max-width:640px){
+    section{padding:72px 0}
+    .nav-in{flex-wrap:wrap;height:auto;padding:10px 0 8px}
+    .nav-links{width:100%;order:3;margin-left:0;background:transparent;border:none;padding:8px 0 2px}
+    .hero-stats{flex-wrap:wrap;gap:18px}
+    .hero-stats .stat{padding:0 22px}
+    .tl{grid-template-columns:64px 26px 1fr}
+    .tl-no{font-size:.9rem}
+    .tl-body{padding-left:18px}
+    .cmdline .copy{display:grid}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none!important;transition:none!important}
+    html{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== 导航 ===== -->
+<nav class="nav" id="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="#top">
+      <span class="seal" aria-hidden="true"><svg viewBox="0 0 48 48"><rect width="48" height="48" rx="0" fill="none"/><text x="24" y="35" font-size="32" fill="#F3EFE5" text-anchor="middle" font-family="serif" font-weight="700">云</text></svg></span>
+      <span>
+        <span class="brand-name">demo-service</span><br>
+        <span class="brand-sub">K8S · 水墨集</span>
+      </span>
+    </a>
+    <div class="nav-links">
+      <a href="#overview">卷首</a>
+      <a href="#flow">部署之流</a>
+      <a href="#resources">资源清单</a>
+      <a href="#api">服务接口</a>
+      <a href="#cmds">云上指令</a>
+      <a href="#journey">学习历程</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ===== 首屏 ===== -->
+<header class="hero" id="top">
+  <div class="wrap hero-in">
+    <span class="hero-eyebrow">SPRING BOOT × KUBERNETES · 学习小集</span>
+    <h1>demo-service<span class="dot">.</span></h1>
+    <p class="hero-sub">一叶云舟，泊于春江。以极简 Spring Boot 服务，习 K8s 部署之全法 —— 打包、造像、上云、访问，皆在眼前。</p>
+    <div class="hero-stats">
+      <div class="stat"><span class="num">2</span><span class="lbl">副本数</span></div>
+      <div class="stat"><span class="num">30080</span><span class="lbl">NodePort</span></div>
+      <div class="stat"><span class="num">1.0.0</span><span class="lbl">镜像版本</span></div>
+      <div class="stat"><span class="num">8080</span><span class="lbl">容器端口</span></div>
+    </div>
+  </div>
+  <div class="hero-poem">
+    <small>题 · 暮春</small><br>
+    暮春三月<br>江南草长<br>杂花生树<br>群莺乱飞
+  </div>
+  <div class="scroll-cue"><i></i>下卷</div>
+</header>
+
+<!-- ===== 卷首 · 总览 ===== -->
+<section id="overview">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-kicker">卷首 · 总览</div>
+      <h2 class="sec-title">轻舟一叶，<em>渡向云端</em></h2>
+    </div>
+    <div class="overview-grid">
+      <div class="ov-text">
+        <p><strong>demo-service</strong> 是一个最小可运行的 Spring Boot 服务，专为在一主二从的 Kubernetes 集群中练习部署流程而生。从本地打包到镜像上云，每一步都留有清晰的脚印。</p>
+        <p>项目以 <strong>Deployment</strong> 承载 2 个副本，以 <strong>NodePort 类型 Service</strong> 对外暴露 30080 端口；容器内置就绪与存活探针，并通过 Downward API 注入自身 Pod 与环境信息，供访问时查验。</p>
+        <div class="ov-tags">
+          <span>Spring Boot 3.3</span>
+          <span>Java 17</span>
+          <span>Docker 多阶段构建</span>
+          <span>探针就绪 · 存活</span>
+          <span>Downward API</span>
+          <span>NodePort 服务</span>
+        </div>
+      </div>
+      <figure class="hanging" aria-label="桃花枝头双莺图">
+        <div class="roll"><img src="assets/bird-flower.jpg" alt="桃花枝头双莺 · 水墨花鸟"></div>
+        <figcaption class="hanging-cap">
+          <span class="cap">桃花枝头双莺 · 暮春写生</span>
+          <span class="miniseal" aria-hidden="true"><svg viewBox="0 0 48 48"><text x="24" y="35" font-size="32" fill="#F3EFE5" text-anchor="middle" font-family="serif" font-weight="700">云</text></svg></span>
+        </figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 部署之流 ===== -->
+<section id="flow">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-kicker">一 · 部署之流</div>
+      <h2 class="sec-title">从笔墨到<em>云帆</em></h2>
+      <p class="sec-lead">一幅五联卷：本地打包、构建镜像、推送仓库、部署上云、对外访问 —— 一条完整的 K8s 部署链路。</p>
+    </div>
+    <div class="flow-wrap">
+      <div class="flow">
+        <div class="fstep">
+          <div class="fnum">壹</div>
+          <h4>打包</h4>
+          <p>Maven 构建出可执行 Jar 包，是云上一切的起点。</p>
+          <span class="cmd">mvn clean package</span>
+        </div>
+        <div class="fstep">
+          <div class="fnum">贰</div>
+          <h4>造像</h4>
+          <p>多阶段 Dockerfile 编译并产出精简运行时镜像。</p>
+          <span class="cmd">docker build -t demo-service:1.0.0 .</span>
+        </div>
+        <div class="fstep">
+          <div class="fnum">叁</div>
+          <h4>推送</h4>
+          <p>镜像入私有仓库，各 Worker 节点方能拉取。</p>
+          <span class="cmd">push → 192.168.139.30:5000</span>
+        </div>
+        <div class="fstep">
+          <div class="fnum">肆</div>
+          <h4>上云</h4>
+          <p>kubectl 应用清单，Deployment 调度出 2 个 Pod。</p>
+          <span class="cmd">kubectl apply -f k8s/</span>
+        </div>
+        <div class="fstep">
+          <div class="fnum">伍</div>
+          <h4>访问</h4>
+          <p>NodePort 承载流量，Service 于副本间轮转。</p>
+          <span class="cmd">curl 节点IP:30080/hello</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 资源清单 ===== -->
+<section id="resources">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-kicker">二 · 资源清单</div>
+      <h2 class="sec-title">云间<em>两份卷宗</em></h2>
+      <p class="sec-lead">Deployment 与 Service 两幅清单，定义了服务的生息与门户。数据取自项目内 k8s/deployment.yaml 与 service.yaml。</p>
+    </div>
+    <div class="res-grid">
+      <div class="res-card">
+        <h3><span class="kind">DEPLOYMENT</span>apps/v1</h3>
+        <div class="kv"><span class="k">名称</span><span class="v">demo-service</span></div>
+        <div class="kv"><span class="k">副本</span><span class="v">replicas: 2</span></div>
+        <div class="kv"><span class="k">镜像</span><span class="v">192.168.139.30:5000/demo-service:1.0.0</span></div>
+        <div class="kv"><span class="k">端口</span><span class="v">http / 8080</span></div>
+        <div class="kv"><span class="k">就绪探针</span><span class="v">GET /health · 5s / 5s</span></div>
+        <div class="kv"><span class="k">存活探针</span><span class="v">GET /health · 15s / 10s</span></div>
+        <div class="kv"><span class="k">环境注入</span><span class="v">MY_POD_NAME · MY_POD_NAMESPACE</span></div>
+      </div>
+      <div class="res-card kind-service">
+        <h3><span class="kind">SERVICE</span>v1</h3>
+        <div class="kv"><span class="k">类型</span><span class="v good">NodePort</span></div>
+        <div class="kv"><span class="k">选择器</span><span class="v">app: demo-service</span></div>
+        <div class="kv"><span class="k">端口</span><span class="v">8080 → http(8080)</span></div>
+        <div class="kv"><span class="k">节点端口</span><span class="v good">30080</span></div>
+        <div class="kv"><span class="k">协议</span><span class="v">TCP</span></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>资源配额 · requests 与 limits</h3>
+      <div class="hint">Deployment 声明的容器资源上下限，CPU 单位毫核（m），内存单位 MiB。</div>
+      <div id="resChart"></div>
+      <p class="chart-note"><b>读法：</b>每一个 Pod 最低可获 <b>100m CPU / 128Mi 内存</b>，最高被限定在 <b>500m CPU / 512Mi 内存</b> —— 弹性之余，亦防一人独吞云间资粮。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 服务接口 ===== -->
+<section id="api">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-kicker">三 · 服务接口</div>
+      <h2 class="sec-title">四行<em>门径</em></h2>
+      <p class="sec-lead">服务启动后监听 8080 端口，四道接口各司其职：报信、报号、报安、报境。</p>
+    </div>
+    <div class="api-card">
+      <table>
+        <colgroup><col class="c1"><col class="c2"><col class="c3"></colgroup>
+        <thead>
+          <tr><th>路径</th><th>说明</th><th>返回</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>GET /</code></td>
+            <td class="desc">服务信息总览：应用名、hostname 与当前时间</td>
+            <td class="ret">服务信息 · JSON</td>
+          </tr>
+          <tr>
+            <td><code>GET /hello</code></td>
+            <td class="desc">回报当前 Pod / 容器 hostname，多访几次可见负载均衡</td>
+            <td class="ret">hostname · 文本</td>
+          </tr>
+          <tr>
+            <td><code>GET /health</code></td>
+            <td class="desc">健康检查端点，供就绪与存活探针轮询</td>
+            <td class="ret">OK · 文本</td>
+          </tr>
+          <tr>
+            <td><code>GET /env</code></td>
+            <td class="desc">回显 K8s Downward API 注入的环境变量</td>
+            <td class="ret">环境变量 · JSON</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 云上指令 ===== -->
+<section id="cmds">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-kicker">四 · 云上指令</div>
+      <h2 class="sec-title">寸楷<em>调云</em></h2>
+      <p class="sec-lead">几行 kubectl，便是与集群对话的笔墨。悬停可复制。</p>
+    </div>
+    <div class="cmd-grid">
+      <div class="cmd-card">
+        <div class="cmd-head"><i></i>部署与查看</div>
+        <div class="cmd-body">
+          <div class="cmdline"><span class="p">$</span><span class="t">kubectl apply -f k8s/</span><button class="copy" title="复制" aria-label="复制命令"></button></div>
+          <div class="cmdline"><span class="p">$</span><span class="t">kubectl get deployment</span><button class="copy" title="复制" aria-label="复制命令"></button></div>
+          <div class="cmdline"><span class="p">$</span><span class="t">kubectl get pod -o wide</span><button class="copy" title="复制" aria-label="复制命令"></button></div>
+          <div class="cmdline"><span class="p">$</span><span class="t">kubectl get svc demo-service</span><button class="copy" title="复制" aria-label="复制命令"></button></div>
+        </div>
+      </div>
+      <div class="cmd-card">
+        <div class="cmd-head"><i></i>排查与日志</div>
+        <div class="cmd-body">
+          <div class="cmdline"><span class="p">$</span><span class="t">kubectl describe pod &lt;pod-name&gt;</span><button class="copy" title="复制" aria-label="复制命令"></button></div>
+          <div class="cmdline"><span class="p">$</span><span class="t">kubectl logs -l app=demo-service</span><button class="copy" title="复制" aria-label="复制命令"></button></div>
+          <div class="cmdline"><span class="p">$</span><span class="t">kubectl exec -it deploy/demo-service -- sh</span><button class="copy" title="复制" aria-label="复制命令"></button></div>
+          <div class="cmdline"><span class="p">$</span><span class="t">kubectl exec deploy/demo-service -- env | grep MY_POD</span><button class="copy" title="复制" aria-label="复制命令"></button></div>
+        </div>
+      </div>
+      <div class="cmd-card">
+        <div class="cmd-head"><i></i>扩缩与滚动更新</div>
+        <div class="cmd-body">
+          <div class="cmdline"><span class="p">$</span><span class="t">kubectl scale deployment demo-service --replicas=3</span><button class="copy" title="复制" aria-label="复制命令"></button></div>
+          <div class="cmdline"><span class="p">$</span><span class="t">kubectl set image deployment/demo-service demo-service=...:1.0.1</span><button class="copy" title="复制" aria-label="复制命令"></button></div>
+          <div class="cmdline"><span class="p">$</span><span class="t">kubectl rollout status deployment/demo-service</span><button class="copy" title="复制" aria-label="复制命令"></button></div>
+          <div class="cmdline"><span class="p">$</span><span class="t">kubectl rollout undo deployment/demo-service</span><button class="copy" title="复制" aria-label="复制命令"></button></div>
+        </div>
+      </div>
+      <div class="cmd-card">
+        <div class="cmd-head"><i></i>收束归去</div>
+        <div class="cmd-body">
+          <div class="cmdline"><span class="p">$</span><span class="t">kubectl rollout history deployment/demo-service</span><button class="copy" title="复制" aria-label="复制命令"></button></div>
+          <div class="cmdline"><span class="p">$</span><span class="t">kubectl delete -f k8s/</span><button class="copy" title="复制" aria-label="复制命令"></button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 学习历程 ===== -->
+<section id="journey">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-kicker">五 · 学习历程</div>
+      <h2 class="sec-title">八步<em>修行</em></h2>
+      <p class="sec-lead">从本地一壶茶，到云上一叶舟 —— 循着这八步，走完 Kubernetes 部署的全部功课。</p>
+    </div>
+    <div class="tl">
+      <div class="tl-row">
+        <div class="tl-no">壹</div>
+        <div class="tl-axis"><span class="tl-dot s1"></span></div>
+        <div class="tl-body"><h4>本地打包</h4><p><code>mvn clean package -DskipTests</code> 产出 <code>target/demo-1.0-SNAPSHOT.jar</code></p></div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-no">贰</div>
+        <div class="tl-axis"><span class="tl-dot s1"></span></div>
+        <div class="tl-body"><h4>本地试运行</h4><p><code>java -jar</code> 起服务，先以 <code>curl /hello /health</code> 验其生机</p></div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-no">叁</div>
+        <div class="tl-axis"><span class="tl-dot s1"></span></div>
+        <div class="tl-body"><h4>构建镜像</h4><p><code>docker build -t demo-service:1.0.0 .</code> 多阶段构建，留精简运行时</p></div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-no">肆</div>
+        <div class="tl-axis"><span class="tl-dot s1"></span></div>
+        <div class="tl-body"><h4>推送镜像</h4><p>推至 Harbor 私有仓库，或直导入各 Worker 节点，令集群可及</p></div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-no">伍</div>
+        <div class="tl-axis"><span class="tl-dot s2"></span></div>
+        <div class="tl-body"><h4>部署上云</h4><p><code>kubectl apply -f k8s/</code> 双 Pod 落子 worker1、worker2</p></div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-no">陆</div>
+        <div class="tl-axis"><span class="tl-dot s2"></span></div>
+        <div class="tl-body"><h4>访问服务</h4><p><code>curl http://&lt;节点IP&gt;:30080/hello</code> 多访几次，见轮转</p></div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-no">柒</div>
+        <div class="tl-axis"><span class="tl-dot s2"></span></div>
+        <div class="tl-body"><h4>扩缩容</h4><p><code>kubectl scale --replicas=3</code> 或回 1，看调度伸缩之妙</p></div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-no">捌</div>
+        <div class="tl-axis"><span class="tl-dot s2"></span></div>
+        <div class="tl-body"><h4>滚动更新</h4><p><code>set image</code> 更新版本，<code>rollout undo</code> 亦可从容回退</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 页脚 ===== -->
+<footer>
+  <div class="wrap foot-in">
+    <div class="foot-seal" aria-hidden="true"><svg viewBox="0 0 48 48"><text x="24" y="35" font-size="32" fill="#F3EFE5" text-anchor="middle" font-family="serif" font-weight="700">云</text></svg></div>
+    <div class="foot-name">demo-service · Kubernetes 水墨集</div>
+    <div class="foot-poem">暮春三月 · 江南草长 · 杂花生树 · 群莺乱飞</div>
+    <div class="foot-tech"><span>Go</span><span>Spring Boot</span><span>Docker</span><span>Kubernetes</span></div>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+  /* 导航滚动状态 */
+  var nav=document.getElementById('nav');
+  window.addEventListener('scroll',function(){
+    nav.classList.toggle('scrolled',window.scrollY>10);
+  },{passive:true});
+
+  /* 资源配额图 */
+  var chartDom=document.getElementById('resChart');
+  if(chartDom && window.echarts){
+    var chart=echarts.init(chartDom);
+    var option={
+      grid:{left:56,right:90,top:26,bottom:30},
+      tooltip:{trigger:'axis',axisPointer:{type:'shadow'},backgroundColor:'rgba(47,42,34,.92)',borderWidth:0,textStyle:{color:'#F3EFE5',fontFamily:'Noto Sans SC',fontSize:12},formatter:function(p){return p[0].name+'<br>'+p.map(function(x){return x.seriesName+'：'+x.value+(x.seriesName==='requests'?'m':'Mi');}).join('<br>');}},
+      legend:{data:['requests','limits'],right:0,top:0,itemWidth:16,itemHeight:9,textStyle:{color:'#6E6757',fontFamily:'Noto Sans SC',fontSize:12}},
+      xAxis:{type:'category',data:['CPU','内存'],axisLine:{lineStyle:{color:'rgba(47,42,34,.25)'}},axisTick:{show:false},axisLabel:{color:'#2F2A22',fontFamily:'Noto Serif SC',fontSize:14}},
+      yAxis:{type:'value',splitLine:{lineStyle:{color:'rgba(47,42,34,.08)'}},axisLabel:{color:'#9C9381',fontSize:11}},
+      series:[
+        {name:'requests',type:'bar',barWidth:22,data:[100,128],itemStyle:{color:'#A9B394'},label:{show:true,position:'right',color:'#6E7C5C',fontSize:11,formatter:function(p){return p.value+(p.dataIndex===0?'m':'Mi');}}},
+        {name:'limits',type:'bar',barWidth:22,data:[500,512],itemStyle:{color:'#C08B72'},label:{show:true,position:'right',color:'#C08B72',fontSize:11,formatter:function(p){return p.value+(p.dataIndex===0?'m':'Mi')}}}
+      ]
+    };
+    chart.setOption(option);
+    window.addEventListener('resize',function(){chart.resize();});
+  } else {
+    chartDom && (chartDom.innerHTML='<p style="padding:40px;text-align:center;color:#9C9381">图表库加载失败，以下为静态对照：CPU 100m→500m；内存 128Mi→512Mi。</p>');
+  }
+
+  /* 复制命令 */
+  var toast=document.getElementById('toast');
+  function showToast(msg){
+    toast.textContent=msg;
+    toast.classList.add('on');
+    clearTimeout(showToast._t);
+    showToast._t=setTimeout(function(){toast.classList.remove('on');},1600);
+  }
+  document.addEventListener('click',function(e){
+    var btn=e.target.closest('.copy');
+    if(!btn) return;
+    var text=btn.parentElement.querySelector('.t').textContent;
+    function ok(){showToast('已誊录：'+text);}
+    function fail(){
+      var ta=document.createElement('textarea');
+      ta.value=text;document.body.appendChild(ta);ta.select();
+      try{document.execCommand('copy');ok();}catch(err){showToast('请手动复制');}
+      document.body.removeChild(ta);
+    }
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(ok,fail);}else{fail();}
+  });
+</script>
+<style>
+  .toast{
+    position:fixed;left:50%;bottom:42px;transform:translateX(-50%) translateY(20px);
+    background:rgba(47,42,34,.92);color:#F3EFE5;font-size:.84rem;letter-spacing:.06em;
+    padding:10px 22px;border-radius:4px;opacity:0;pointer-events:none;transition:all .3s;
+    z-index:90;max-width:82vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</body>
+</html>
