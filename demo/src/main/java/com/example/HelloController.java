@@ -21,7 +21,7 @@ public class HelloController {
 
     @GetMapping("/hello")
     public String hello() {
-        return "欢迎来到Lzt的k8s, pod = " + hostname();
+        return "欢迎来到Lzt的k8s，hhhh, pod = " + hostname();
     }
 
     @GetMapping("/health")
