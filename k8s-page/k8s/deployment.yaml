@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-page
+  labels:
+    app: k8s-page
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: k8s-page
+  template:
+    metadata:
+      labels:
+        app: k8s-page
+    spec:
+      containers:
+        - name: k8s-page
+          image: 192.168.139.30:5000/k8s-page:1.0.0
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
